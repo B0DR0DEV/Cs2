@@ -1,15 +1,8 @@
 name: Tests and Android APK
 
-# Every push to main (and every PR) runs the EditMode test suite, then builds a
-# debug-signed APK with Unity in Docker (game-ci). The APK is attached to the run as
-# the "StrikeZone-Android" artifact.
-#
-# Required repository secrets (Settings → Secrets and variables → Actions):
-#   UNITY_EMAIL     – Unity account e-mail     } enough for a free Personal seat
-#   UNITY_PASSWORD  – Unity account password   }
-#   UNITY_LICENSE   – optional: contents of a .ulf file (Pro/Enterprise or manual activation)
-# Optional (release signing): ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASS,
-#   ANDROID_KEYALIAS_NAME, ANDROID_KEYALIAS_PASS
+# No accounts or secrets needed: Godot is MIT-licensed, the .NET SDK and Android SDK
+# are preinstalled or downloaded anonymously, and the APK is signed with a debug key
+# generated on the fly. Download the APK from the run's "StrikeZone-Android" artifact.
 
 on:
   push:
@@ -22,37 +15,28 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  UNITY_VERSION: 6000.3.27f1
+  GODOT_VERSION: 4.7.2
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: 1
 
 jobs:
   tests:
-    name: EditMode tests
+    name: Core unit tests
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 20
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Cache Library
-        uses: actions/cache@v4
+      - uses: actions/setup-dotnet@v4
         with:
-          path: Library
-          key: Library-tests-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-${{ hashFiles('Assets/**/*.cs', 'Assets/**/*.asmdef') }}
-          restore-keys: |
-            Library-tests-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-
-            Library-tests-
+          dotnet-version: 8.0.x
 
-      - name: Run EditMode tests
-        id: tests
-        uses: game-ci/unity-test-runner@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-        with:
-          unityVersion: ${{ env.UNITY_VERSION }}
-          testMode: editmode
-          artifactsPath: test-results
+      - name: Run tests
+        run: >
+          dotnet test tests/StrikeZone.Core.Tests/StrikeZone.Core.Tests.csproj
+          --logger "trx;LogFileName=core.trx"
+          --logger "console;verbosity=normal"
+          --results-directory test-results
 
       - name: Upload test results
         if: always()
@@ -65,60 +49,99 @@ jobs:
   android:
     name: Build Android APK
     needs: tests
-    # Build even if a test failed, so there is always an APK to look at; the failed
-    # test job still marks the run red.
+    # Build even if a test failed so there is always an APK to try; the run still shows red.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 60
     steps:
-      - name: Free disk space (the Android editor image is large)
-        uses: jlumbroso/free-disk-space@v1.3.1
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: false
-          docker-images: false
-          swap-storage: true
+      - uses: actions/checkout@v4
 
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Cache Library
-        uses: actions/cache@v4
+      - uses: actions/setup-dotnet@v4
         with:
-          path: Library
-          key: Library-Android-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-${{ hashFiles('Assets/**/*.cs', 'Assets/**/*.asmdef') }}
-          restore-keys: |
-            Library-Android-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}-
-            Library-Android-
+          dotnet-version: 8.0.x
 
-      - name: Build APK
-        uses: game-ci/unity-builder@v4
-        env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      - uses: actions/setup-java@v4
         with:
-          unityVersion: ${{ env.UNITY_VERSION }}
-          targetPlatform: Android
-          buildName: StrikeZone
-          buildMethod: StrikeZone.EditorTools.BuildScript.BuildAndroidCI
-          androidExportType: androidPackage
-          versioning: Custom
-          version: 0.1.${{ github.run_number }}
-          androidVersionCode: ${{ github.run_number }}
-          androidKeystoreBase64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          androidKeystorePass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
-          androidKeyaliasName: ${{ secrets.ANDROID_KEYALIAS_NAME }}
-          androidKeyaliasPass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
-          allowDirtyBuild: true
+          distribution: temurin
+          java-version: 17
+
+      - name: Compile game code (fast C# error check)
+        run: dotnet build StrikeZone.csproj -c ExportDebug
+
+      - name: Install Godot (.NET) and export templates
+        run: |
+          set -euo pipefail
+          V="${GODOT_VERSION}"
+          BASE="https://github.com/godotengine/godot-builds/releases/download/${V}-stable"
+          mkdir -p "$HOME/godot"
+          cd "$HOME/godot"
+          curl -fsSL -o godot.zip "$BASE/Godot_v${V}-stable_mono_linux_x86_64.zip"
+          unzip -q godot.zip
+          BIN="$(find "$HOME/godot" -maxdepth 2 -type f -name 'Godot_v*_mono_linux*x86_64' | head -n 1)"
+          chmod +x "$BIN"
+          echo "GODOT_BIN=$BIN" >> "$GITHUB_ENV"
+          curl -fsSL -o templates.tpz "$BASE/Godot_v${V}-stable_mono_export_templates.tpz"
+          DEST="$HOME/.local/share/godot/export_templates/${V}.stable.mono"
+          mkdir -p "$DEST"
+          unzip -q templates.tpz -d tpl
+          mv tpl/templates/* "$DEST/"
+          ls "$DEST"
+
+      - name: Configure Android SDK path and debug keystore
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          keytool -genkeypair -keystore "$HOME/debug.keystore" -storepass android -alias androiddebugkey \
+            -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          mkdir -p "$HOME/.config/godot"
+          for NAME in editor_settings-4.tres editor_settings-4.7.tres; do
+            cat > "$HOME/.config/godot/$NAME" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$SDK"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$HOME/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+          done
+          {
+            echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/debug.keystore"
+            echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey"
+            echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android"
+          } >> "$GITHUB_ENV"
+          ls "$SDK/build-tools" "$SDK/platform-tools" | head -20
+
+      - name: Stamp version
+        run: |
+          sed -i "s/^version\/code=.*/version\/code=${{ github.run_number }}/" export_presets.cfg
+          sed -i "s/^version\/name=.*/version\/name=\"0.2.${{ github.run_number }}\"/" export_presets.cfg
+
+      - name: Import project
+        run: |
+          "$GODOT_BIN" --headless --import 2>&1 | tail -n 60 || true
+
+      - name: Export APK
+        run: |
+          set -o pipefail
+          mkdir -p build
+          "$GODOT_BIN" --headless --export-debug "Android" build/StrikeZone.apk 2>&1 | tee export.log
+          test -f build/StrikeZone.apk
+          ls -la build
+
+      - name: Upload export log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: export-log
+          path: export.log
+          if-no-files-found: ignore
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: StrikeZone-Android
-          path: build/Android
+          path: build/StrikeZone.apk
           if-no-files-found: error
           retention-days: 30

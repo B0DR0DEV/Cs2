@@ -1,0 +1,47 @@
+; Engine configuration file.
+; Strike Zone — Godot 4.7 (.NET). Everything gameplay-related is built from code;
+; the only scene is scenes/Main.tscn which hosts the Main node.
+
+config_version=5
+
+[application]
+
+config/name="Strike Zone"
+config/description="Mobile tactical 5v5 shooter"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.7", "C#", "Mobile")
+config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.055, 0.067, 0.086, 1)
+boot_splash/show_image=false
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+window/vsync/vsync_mode=0
+
+[dotnet]
+
+project/assembly_name="StrikeZone"
+
+[input_devices]
+
+pointing/emulate_mouse_from_touch=true
+pointing/emulate_touch_from_mouse=false
+
+[physics]
+
+common/physics_ticks_per_second=64
+common/max_physics_steps_per_frame=8
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="mobile"
+rendering_device/fallback_to_opengl3=true
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_3d=0
+lights_and_shadows/directional_shadow/size.mobile=2048
