@@ -178,6 +178,18 @@ namespace StrikeZone.Game
             cmd.LastWeapon = _lastLatched;
             if (_slotLatched > 0) cmd.SelectSlot = _slotLatched;
             ClearLatches();
+
+            if (GameContext.SmokeTest)
+            {
+                // Exercise movement, firing and reload paths in CI.
+                ulong t = Engine.GetPhysicsFrames();
+                cmd.Forward = 1f;
+                cmd.Side = (t / 64) % 2 == 0 ? 1f : -1f;
+                cmd.FireHeld = true;
+                cmd.FirePressed = t % 16 == 0;
+                cmd.JumpPressed = t % 90 == 0;
+                cmd.ReloadPressed = t % 200 == 0;
+            }
             return cmd;
         }
 

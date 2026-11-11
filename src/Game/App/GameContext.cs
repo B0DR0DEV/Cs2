@@ -10,6 +10,8 @@ namespace StrikeZone.Game
     public static class GameContext
     {
         public static Main App;
+        /// <summary>CI smoke test: drives the game automatically (see Main).</summary>
+        public static bool SmokeTest;
         public static GameDatabase Database;
         public static GameSettings Settings;
         public static TrainingStats Lifetime;

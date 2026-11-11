@@ -132,14 +132,6 @@ jobs:
           test -f build/StrikeZone.apk
           ls -la build
 
-      - name: Upload export log
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: export-log
-          path: export.log
-          if-no-files-found: ignore
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -147,3 +139,24 @@ jobs:
           path: build/StrikeZone.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Smoke test (run the game headless for a few seconds)
+        run: |
+          dotnet build StrikeZone.csproj -c Debug -v q
+          set -o pipefail
+          timeout 120 "$GODOT_BIN" --headless --path . -- --smoke 2>&1 | tee smoke.log
+          grep -q "\[smoke\] done" smoke.log
+          if grep -nE "Unhandled exception|System\.[A-Za-z]+Exception|SCRIPT ERROR|ERROR:" smoke.log | grep -v "shutdown_adb_on_exit"; then
+            echo "::error::Runtime errors during smoke test"
+            exit 1
+          fi
+
+      - name: Upload export log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: export-log
+          path: |
+            export.log
+            smoke.log
+          if-no-files-found: ignore

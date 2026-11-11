@@ -29,6 +29,37 @@ namespace StrikeZone.Game
 
             ApplyGlobalSettings();
             ShowMainMenu();
+
+            foreach (string arg in OS.GetCmdlineUserArgs())
+                if (arg == "--smoke") StartSmokeTest();
+        }
+
+        /// <summary>
+        /// Headless CI check: menu → training range → move and shoot for a few seconds →
+        /// pause menu → back to the menu → quit. Any script error shows up in the CI log.
+        /// </summary>
+        private void StartSmokeTest()
+        {
+            GameContext.SmokeTest = true;
+            GD.Print("[smoke] main menu up");
+            var tree = GetTree();
+            tree.CreateTimer(1.0).Timeout += () =>
+            {
+                GD.Print("[smoke] starting training");
+                StartTraining(new TrainingOptions());
+            };
+            tree.CreateTimer(6.0).Timeout += () =>
+            {
+                var stats = GameContext.Session;
+                GD.Print("[smoke] shots=" + (stats != null ? stats.Shots : -1) + " hits=" + (stats != null ? stats.Hits : -1) +
+                         " player=" + (GameContext.Player != null ? GameContext.Player.GlobalPosition.ToString() : "none"));
+                EndMatch();
+            };
+            tree.CreateTimer(8.0).Timeout += () =>
+            {
+                GD.Print("[smoke] done");
+                tree.Quit(0);
+            };
         }
 
         private static GameDatabase LoadDatabase()
