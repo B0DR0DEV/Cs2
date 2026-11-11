@@ -1,0 +1,49 @@
+{
+  "movement": {
+    "friction": 5.2,
+    "stopSpeed": 80,
+    "accelerate": 5.5,
+    "airAccelerate": 12,
+    "airWishSpeedCap": 30,
+    "gravity": 800,
+    "jumpImpulse": 301.993,
+    "walkFraction": 0.52,
+    "crouchFraction": 0.34,
+    "crouchTransitionSpeed": 8,
+    "accurateSpeedFraction": 0.34,
+    "standHeight": 72,
+    "crouchHeight": 54,
+    "standEyeHeight": 64,
+    "crouchEyeHeight": 46,
+    "radius": 16,
+    "stepHeight": 18,
+    "ladderSpeed": 200,
+    "fallDamageSafeSpeed": 580,
+    "fallDamageFatalSpeed": 1024,
+    "tagRecoveryTime": 0.4,
+    "maxVelocity": 3500
+  },
+  "damage": {
+    "headMultiplier": 4,
+    "chestMultiplier": 1,
+    "stomachMultiplier": 1.25,
+    "armMultiplier": 1,
+    "legMultiplier": 0.75,
+    "armorBonus": 0.5,
+    "rangeStepUnits": 500,
+    "maxPenetrationSurfaces": 4,
+    "penetrationBudgetScale": 10,
+    "maxPenetrationThickness": 64,
+    "maxHealth": 100,
+    "maxArmor": 100
+  },
+  "surfaces": [
+    { "id": "concrete", "displayName": "Бетон", "resistance": 4.0, "damageFactor": 0.75, "footstep": "concrete", "color": "#9a9892", "smoothness": 0.15, "metallic": 0 },
+    { "id": "brick", "displayName": "Кирпич", "resistance": 3.2, "damageFactor": 0.78, "footstep": "concrete", "color": "#a36a4f", "smoothness": 0.1, "metallic": 0 },
+    { "id": "wood", "displayName": "Дерево", "resistance": 1.0, "damageFactor": 0.9, "footstep": "wood", "color": "#8a6a45", "smoothness": 0.25, "metallic": 0 },
+    { "id": "metal", "displayName": "Металл", "resistance": 2.5, "damageFactor": 0.8, "footstep": "metal", "color": "#6d7781", "smoothness": 0.55, "metallic": 0.8 },
+    { "id": "dirt", "displayName": "Грунт", "resistance": 3.0, "damageFactor": 0.8, "footstep": "dirt", "color": "#7b6a52", "smoothness": 0.05, "metallic": 0 },
+    { "id": "sand", "displayName": "Песок", "resistance": 3.0, "damageFactor": 0.8, "footstep": "dirt", "color": "#c9b48a", "smoothness": 0.05, "metallic": 0 },
+    { "id": "glass", "displayName": "Стекло", "resistance": 0.5, "damageFactor": 0.95, "footstep": "concrete", "color": "#a8c8d8", "smoothness": 0.9, "metallic": 0 }
+  ]
+}
