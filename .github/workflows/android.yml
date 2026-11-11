@@ -2,13 +2,21 @@ name: Tests and Android APK
 
 # No accounts or secrets needed: Godot is MIT-licensed, the .NET SDK and Android SDK
 # are preinstalled or downloaded anonymously, and the APK is signed with a debug key
-# generated on the fly. Download the APK from the run's "StrikeZone-Android" artifact.
+# generated on the fly.
+#
+# Where to get the APK:
+#   • every run: the "StrikeZone-Android" artifact on the run page;
+#   • every successful build of main: the "latest" GitHub Release, with a permanent link
+#     https://github.com/<owner>/<repo>/releases/latest/download/StrikeZone.apk
 
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write   # publish the APK to the "latest" release
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -160,3 +168,21 @@ jobs:
             export.log
             smoke.log
           if-no-files-found: ignore
+
+      - name: Publish to the "latest" release
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          NOTES="Автоматическая сборка #${{ github.run_number }} из коммита ${GITHUB_SHA::7}.
+
+          Установка: скачайте StrikeZone.apk, откройте его на телефоне (Android 8+, 64-бит) и разрешите установку из неизвестных источников.
+
+          Журнал сборки: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest build/StrikeZone.apk \
+            --title "Strike Zone — сборка #${{ github.run_number }}" \
+            --notes "$NOTES" \
+            --target "$GITHUB_SHA" \
+            --latest
