@@ -5,9 +5,9 @@ name: Tests and Android APK
 # the "StrikeZone-Android" artifact.
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
-#   UNITY_LICENSE   – contents of your Unity_lic.ulf (Personal licence is fine)
-#   UNITY_EMAIL     – Unity account e-mail
-#   UNITY_PASSWORD  – Unity account password
+#   UNITY_EMAIL     – Unity account e-mail     } enough for a free Personal seat
+#   UNITY_PASSWORD  – Unity account password   }
+#   UNITY_LICENSE   – optional: contents of a .ulf file (Pro/Enterprise or manual activation)
 # Optional (release signing): ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASS,
 #   ANDROID_KEYALIAS_NAME, ANDROID_KEYALIAS_PASS
 

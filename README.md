@@ -28,12 +28,11 @@ docs/                      — архитектура, отчёты фаз
 
 ## Сборка APK в GitHub Actions
 
-1. Добавьте секреты репозитория (**Settings → Secrets and variables → Actions**):
-   - `UNITY_EMAIL`, `UNITY_PASSWORD` — учётная запись Unity;
-   - `UNITY_LICENSE` — содержимое файла лицензии `Unity_lic.ulf`. Personal-лицензия бесплатна: войдите в Unity Hub и активируйте её, после чего файл появится здесь:
-     - Windows: `C:\ProgramData\Unity\Unity_lic.ulf`
-     - macOS: `/Library/Application Support/Unity/Unity_lic.ulf`
-     - Linux: `~/.local/share/unity3d/Unity/Unity_lic.ulf`
+1. Добавьте секреты репозитория (**Settings → Secrets and variables → Actions → New repository secret**):
+   - `UNITY_EMAIL` — e-mail учётной записи Unity;
+   - `UNITY_PASSWORD` — пароль учётной записи Unity.
+
+   Для бесплатной лицензии Personal этого достаточно: game-ci активирует её сам и возвращает место после сборки. Секрет `UNITY_LICENSE` (содержимое `.ulf`) нужен только для Pro/Enterprise или ручной активации.
 2. Сделайте push в `main` или запустите workflow вручную (**Actions → Tests and Android APK → Run workflow**).
 3. По окончании скачайте артефакт **StrikeZone-Android** со страницы запуска — внутри `StrikeZone.apk`.
 
